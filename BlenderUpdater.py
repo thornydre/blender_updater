@@ -4,9 +4,14 @@ import subprocess
 import os
 import sys
 import platform
-from PySide2.QtWidgets import (QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
-from PySide2.QtCore import Slot, Qt, QFile, QTextStream
-from PySide2.QtGui import QPixmap, QIcon
+if 'Windows' in platform.system():
+	from PySide2.QtWidgets import (QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
+	from PySide2.QtCore import Slot, Qt, QFile, QTextStream
+	from PySide2.QtGui import QPixmap, QIcon
+else: # TODO: get upset if unsupported platform
+	from PySide6.QtWidgets import (QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
+	from PySide6.QtCore import Slot, Qt, QFile, QTextStream
+	from PySide6.QtGui import QPixmap, QIcon
 from BlenderUpdaterPreferences import *
 
 class BlenderUpdater(QWidget):
@@ -69,7 +74,7 @@ class BlenderUpdater(QWidget):
 		self.horizon_layout = QHBoxLayout()
 		self.horizon_layout.addWidget(title_label)
 		self.horizon_layout.addWidget(self.parameters_button)
-		
+
 		self.vert_layout = QVBoxLayout()
 		self.vert_layout.addLayout(self.horizon_layout)
 		self.vert_layout.addWidget(self.branches_combo)
@@ -97,7 +102,7 @@ class BlenderUpdater(QWidget):
 			while proc.poll() is None:
 				output = proc.stdout.readline()
 				output_string = output.strip().decode("utf-8")
-				
+
 				if output_string:
 					progress = True
 					if output_string == "CHECKOUT":
@@ -127,7 +132,7 @@ class BlenderUpdater(QWidget):
 				self.progress_label.setText(text + dots_text)
 
 				self.setWindowTitle(self.title)
-				
+
 				print(output_string)
 
 				loop += 1
@@ -137,7 +142,7 @@ class BlenderUpdater(QWidget):
 		self.abort_button.setEnabled(False)
 		self.start_branch_button.setEnabled(True)
 		self.submit_button.setEnabled(True)
-			
+
 		self.setWindowTitle(self.title)
 
 		if self.os == "Windows":
@@ -197,9 +202,9 @@ class BlenderUpdater(QWidget):
 
 		with open("./BlenderUpdater.conf", "r") as f:
 			lines = f.readlines()
-			
+
 			return lines[0].strip("\n"), lines[1]
-		
+
 		return "", ""
 
 

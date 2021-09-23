@@ -1,5 +1,10 @@
-from PySide2.QtWidgets import (QDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog)
-from PySide2.QtCore import Qt
+import platform
+if 'Windows' in platform.system():
+	from PySide2.QtWidgets import (QDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog)
+	from PySide2.QtCore import Qt
+else: # TODO: get upset if unsupported platform
+	from PySide6.QtWidgets import (QDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog)
+	from PySide6.QtCore import Qt
 import os
 
 
@@ -57,8 +62,10 @@ class BlenderUpdaterPreferences(QDialog):
 		if os.path.isfile("./BlenderUpdater.conf"):
 			with open("./BlenderUpdater.conf", "r") as f:
 				lines = f.readlines()
-				
-				return lines[0].strip("\n"), lines[1]
+				try:
+					return lines[0].strip("\n"), lines[1]
+				except IndexError:
+					pass
 		else:
 			f = open("./BlenderUpdater.conf", "x")
 			f.writelines("\n")
