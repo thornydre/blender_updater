@@ -9,6 +9,7 @@ from PySide6.QtCore import Slot, Qt, QFile, QTextStream
 from PySide6.QtGui import QPixmap, QIcon
 from utils.preferences import *
 
+
 class BlenderUpdater(QWidget):
 	def __init__(self):
 		QWidget.__init__(self)
@@ -100,20 +101,16 @@ class BlenderUpdater(QWidget):
 					progress = True
 					if output_string == "CHECKOUT":
 						text = "(1/4) - Checkout"
-						# self.progress_label.setText("(1/4) - Checkout")
 						self.title = "(1/4) - Blender Updater"
 					elif output_string == "UPDATE":
 						text = "(2/4) - Update"
-						# self.progress_label.setText("(2/4) - Update")
 						self.title = "(2/4) - Blender Updater"
 					elif output_string == "BUILD":
 						text = "(3/4) - Build"
-						# self.progress_label.setText("(3/4) - Build")
 						self.title = "(3/4) - Blender Updater"
 					elif output_string == "Error during build":
 						progress = False
 						text = "Error during build"
-						# self.progress_label.setText("Error during build")
 						self.title = "Blender Updater"
 
 				if progress:
@@ -144,17 +141,20 @@ class BlenderUpdater(QWidget):
 
 		self.cancelThread()
 
+
 	def getUpdateScriptParameters(self, branch_name):
 		if self.os == "Windows":
 			return [os.path.dirname(__file__) + "/utils/update.bat", branch_name, self.base_path]
 		else:
 			return ["sh", "./utils/update.sh", branch_name, self.base_path, self.branches_path]
 
+
 	def getPreexecCallback(self):
 		if self.os == "Windows":
 			return None
 		else:
 			return os.setsid
+
 
 	def getBranchName(self):
 		'''
@@ -163,11 +163,13 @@ class BlenderUpdater(QWidget):
 		selectedBranch = self.branches_combo.currentText()
 		return selectedBranch if len(selectedBranch)>0 else "master"
 
+
 	def getBuildPath(self):
 		if self.os == "Windows":
 			return self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
 		else:
 			return os.path.join(self.branches_path, self.getBranchName(), "bin/blender")
+
 
 	def abortBuild(self):
 		if self.child_process:

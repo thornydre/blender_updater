@@ -54,15 +54,15 @@ class BlenderUpdaterPreferences(QDialog):
 
 
 	def loadConfig(self):
-		if os.path.isfile("./BlenderUpdater.conf"):
-			with open("./BlenderUpdater.conf", "r") as f:
+		if os.path.isfile("./utils/preferences.conf"):
+			with open("./utils/preferences.conf", "r") as f:
 				lines = f.readlines()
 				try:
 					return lines[0].strip("\n"), lines[1]
 				except IndexError:
 					pass
 		else:
-			f = open("./BlenderUpdater.conf", "x")
+			f = open("./utils/preferences.conf", "x")
 			f.writelines("\n")
 
 		return "", ""
@@ -91,6 +91,6 @@ class BlenderUpdaterPreferences(QDialog):
 		branches_directory = self.branches_directory_textfield.text()
 		if blender_directory and branches_directory:
 			paths = blender_directory + "\n" + branches_directory
-			f = open("./BlenderUpdater.conf", "w")
+			f = open("./utils/preferences.conf", "w")
 			f.writelines(paths)
 			self.close()
