@@ -2,3 +2,4 @@ PySide6==6.1.3; sys_platform != 'windows'
 shiboken6==6.1.3; sys_platform != 'windows'
 PySide2==5.15.2; sys_platform == 'windows'
 shiboken2==5.15.2; sys_platform == 'windows'
+desktop-file==1.2
