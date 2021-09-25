@@ -23,7 +23,7 @@ class BlenderUpdater(QWidget):
 		self.base_path += "/"
 
 		self.os = platform.system()
-
+		self.update_script = "blender_updater" + ".bat" if self.os == 'Windows' else 'sh'
 		self.initUI()
 
 		self.comboChanged()
@@ -90,11 +90,9 @@ class BlenderUpdater(QWidget):
 		self.start_branch_button.setEnabled(False)
 		self.abort_button.setEnabled(True)
 
-		parameters = ["blender_updater.bat", self.branches_combo.currentText()]
-		parameters.append(self.base_path)
-
+		parameters = self.getUpdateScriptParameters(self.branches_combo.currentText())
 		with subprocess.Popen(parameters, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as proc:
-			self.batch_process = proc
+			self.child_process = proc
 
 			text = ""
 			loop = 0
@@ -151,10 +149,15 @@ class BlenderUpdater(QWidget):
 
 		self.cancelThread()
 
+	def getUpdateScriptParameters(self, branch_name):
+		if self.os == "Windows":
+			return ["blender_updater.bat", branch_name, self.base_path]
+		else:
+			return ["sh", "./blender_updater.sh", branch_name, self.base_path, self.branches_path]
 
 	def abortBuild(self):
-		if self.batch_process:
-			self.batch_process.terminate()
+		if self.child_process:
+			self.child_process.terminate()
 			self.stop_event.set()
 			self.abort_button.setEnabled(False)
 			self.start_branch_button.setEnabled(True)
@@ -202,9 +205,10 @@ class BlenderUpdater(QWidget):
 
 		with open("./BlenderUpdater.conf", "r") as f:
 			lines = f.readlines()
-
-			return lines[0].strip("\n"), lines[1]
-
+			try:
+				return lines[0].strip("\n"), lines[1]
+			except IndexError: # User messed with conf file
+				pass
 		return "", ""
 
 
