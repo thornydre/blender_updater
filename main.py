@@ -7,7 +7,7 @@ import platform
 from PySide2.QtWidgets import (QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
 from PySide2.QtCore import Slot, Qt, QFile, QTextStream
 from PySide2.QtGui import QPixmap, QIcon
-from BlenderUpdaterPreferences import *
+from utils.preferences import *
 
 class BlenderUpdater(QWidget):
 	def __init__(self):
@@ -35,7 +35,7 @@ class BlenderUpdater(QWidget):
 		title_label = QLabel("Blender Updater")
 		title_label.setAlignment(Qt.AlignCenter)
 
-		pixmap = QPixmap("./gear.png")
+		pixmap = QPixmap("./assets/gear.png")
 		icon = QIcon(pixmap)
 		self.parameters_button = QPushButton()
 		self.parameters_button.setFixedWidth(25)
@@ -85,7 +85,7 @@ class BlenderUpdater(QWidget):
 		self.start_branch_button.setEnabled(False)
 		self.abort_button.setEnabled(True)
 
-		parameters = ["blender_updater.bat", self.branches_combo.currentText()]
+		parameters = [os.path.dirname(__file__) + "/utils/update.bat", self.branches_combo.currentText()]
 		parameters.append(self.base_path)
 
 		with subprocess.Popen(parameters, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as proc:
@@ -160,7 +160,7 @@ class BlenderUpdater(QWidget):
 
 
 	def startThread(self):
-		if os.path.isfile("./BlenderUpdater.conf"):
+		if os.path.isfile("./utils/preferences.conf"):
 			self.stop_event = threading.Event()
 			self.c_thread = threading.Thread(target=self.buildBlender, args=(self.stop_event, ))
 			self.c_thread.start()
@@ -192,10 +192,10 @@ class BlenderUpdater(QWidget):
 
 
 	def loadConfig(self):
-		if not os.path.isfile("./BlenderUpdater.conf"):
+		if not os.path.isfile("./utils/preferences.conf"):
 			self.preferencesCommand()
 
-		with open("./BlenderUpdater.conf", "r") as f:
+		with open("./utils/preferences.conf", "r") as f:
 			lines = f.readlines()
 			
 			return lines[0].strip("\n"), lines[1]
@@ -205,7 +205,7 @@ class BlenderUpdater(QWidget):
 
 def main():
 	app = QApplication(sys.argv)
-	file = QFile("./dark.qss")
+	file = QFile("./assets/dark.qss")
 	file.open(QFile.ReadOnly | QFile.Text)
 	stream = QTextStream(file)
 	app.setStyleSheet(stream.readAll())
