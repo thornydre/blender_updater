@@ -4,9 +4,9 @@ import subprocess
 import os
 import sys
 import platform
-from PySide2.QtWidgets import (QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
-from PySide2.QtCore import Slot, Qt, QFile, QTextStream
-from PySide2.QtGui import QPixmap, QIcon
+from PySide6.QtWidgets import (QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
+from PySide6.QtCore import Slot, Qt, QFile, QTextStream
+from PySide6.QtGui import QPixmap, QIcon
 from utils.preferences import *
 
 class BlenderUpdater(QWidget):
