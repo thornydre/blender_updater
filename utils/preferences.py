@@ -1,10 +1,6 @@
 import platform
-if 'Windows' in platform.system():
-	from PySide2.QtWidgets import (QDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog)
-	from PySide2.QtCore import Qt
-else: # TODO: get upset if unsupported platform
-	from PySide6.QtWidgets import (QDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog)
-	from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (QDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog)
+from PySide6.QtCore import Qt
 import os
 
 

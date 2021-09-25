@@ -4,14 +4,9 @@ import subprocess
 import os
 import sys
 import platform
-if 'Windows' in platform.system():
-	from PySide2.QtWidgets import (QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
-	from PySide2.QtCore import Slot, Qt, QFile, QTextStream
-	from PySide2.QtGui import QPixmap, QIcon
-else: # TODO: get upset if unsupported platform
-	from PySide6.QtWidgets import (QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
-	from PySide6.QtCore import Slot, Qt, QFile, QTextStream
-	from PySide6.QtGui import QPixmap, QIcon
+from PySide6.QtWidgets import (QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
+from PySide6.QtCore import Slot, Qt, QFile, QTextStream
+from PySide6.QtGui import QPixmap, QIcon
 from utils.preferences import *
 
 class BlenderUpdater(QWidget):
@@ -90,7 +85,7 @@ class BlenderUpdater(QWidget):
 		self.abort_button.setEnabled(True)
 
 		parameters = self.getUpdateScriptParameters(self.branches_combo.currentText())
-		with subprocess.Popen(parameters, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, preexec_fn=os.setsid) as proc:
+		with subprocess.Popen(parameters, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, preexec_fn=self.getPreexecCallback()) as proc:
 			self.child_process = proc
 
 			text = ""
@@ -154,6 +149,12 @@ class BlenderUpdater(QWidget):
 		else:
 			return ["sh", "./utils/update.sh", branch_name, self.base_path, self.branches_path]
 
+	def getPreexecCallback(self):
+		if self.os == "Windows":
+			return None
+		else:
+			return os.setsid
+
 	def getBranchName(self):
 		'''
 			Get the branch name to be used in update.sh and linux build paths; assume "master" if nothing is selected
@@ -197,7 +198,7 @@ class BlenderUpdater(QWidget):
 
 	def preferencesCommand(self):
 		dialog = BlenderUpdaterPreferences(self)
-		dialog.exec_()
+		dialog.exec()
 
 
 	def startBuild(self):
@@ -235,7 +236,7 @@ def main():
 	widget.resize(300, 200)
 	widget.show()
 
-	sys.exit(app.exec_())
+	sys.exit(app.exec())
 
 if __name__ == "__main__":
 	main()

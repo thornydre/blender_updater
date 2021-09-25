@@ -1,5 +1,3 @@
-PySide6==6.1.3; sys_platform != 'windows'
-shiboken6==6.1.3; sys_platform != 'windows'
-PySide2==5.15.2; sys_platform == 'windows'
-shiboken2==5.15.2; sys_platform == 'windows'
+PySide6==6.1.3
+shiboken6==6.1.3
 desktop-file==1.2
