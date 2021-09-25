@@ -1,3 +1,3 @@
 #!/bin/sh
 . ./.venv/bin/activate
-python3 BlenderUpdater.py
+python3 main.py

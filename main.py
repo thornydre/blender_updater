@@ -12,7 +12,7 @@ else: # TODO: get upset if unsupported platform
 	from PySide6.QtWidgets import (QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
 	from PySide6.QtCore import Slot, Qt, QFile, QTextStream
 	from PySide6.QtGui import QPixmap, QIcon
-from BlenderUpdaterPreferences import *
+from utils.preferences import *
 
 class BlenderUpdater(QWidget):
 	def __init__(self):
@@ -23,7 +23,6 @@ class BlenderUpdater(QWidget):
 		self.base_path += "/"
 
 		self.os = platform.system()
-		self.update_script = "blender_updater" + ".bat" if self.os == 'Windows' else 'sh'
 		self.initUI()
 
 		self.comboChanged()
@@ -40,7 +39,7 @@ class BlenderUpdater(QWidget):
 		title_label = QLabel("Blender Updater")
 		title_label.setAlignment(Qt.AlignCenter)
 
-		pixmap = QPixmap("./gear.png")
+		pixmap = QPixmap("./assets/gear.png")
 		icon = QIcon(pixmap)
 		self.parameters_button = QPushButton()
 		self.parameters_button.setFixedWidth(25)
@@ -91,7 +90,7 @@ class BlenderUpdater(QWidget):
 		self.abort_button.setEnabled(True)
 
 		parameters = self.getUpdateScriptParameters(self.branches_combo.currentText())
-		with subprocess.Popen(parameters, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as proc:
+		with subprocess.Popen(parameters, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, preexec_fn=os.setsid) as proc:
 			self.child_process = proc
 
 			text = ""
@@ -151,9 +150,22 @@ class BlenderUpdater(QWidget):
 
 	def getUpdateScriptParameters(self, branch_name):
 		if self.os == "Windows":
-			return ["blender_updater.bat", branch_name, self.base_path]
+			return [os.path.dirname(__file__) + "/utils/update.bat", branch_name, self.base_path]
 		else:
-			return ["sh", "./blender_updater.sh", branch_name, self.base_path, self.branches_path]
+			return ["sh", "./utils/update.sh", branch_name, self.base_path, self.branches_path]
+
+	def getBranchName(self):
+		'''
+			Get the branch name to be used in update.sh and linux build paths; assume "master" if nothing is selected
+		'''
+		selectedBranch = self.branches_combo.currentText()
+		return selectedBranch if len(selectedBranch)>0 else "master"
+
+	def getBuildPath(self):
+		if self.os == "Windows":
+			return self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
+		else:
+			return os.path.join(self.branches_path, self.getBranchName(), "bin/blender")
 
 	def abortBuild(self):
 		if self.child_process:
@@ -176,9 +188,8 @@ class BlenderUpdater(QWidget):
 			self.preferencesCommand()
 
 	def comboChanged(self):
-		path = self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
-
-		if os.path.exists(path):
+		#path = self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
+		if os.path.exists(self.getBuildPath()):
 			self.start_branch_button.setEnabled(True)
 		else:
 			self.start_branch_button.setEnabled(False)
@@ -190,7 +201,8 @@ class BlenderUpdater(QWidget):
 
 
 	def startBuild(self):
-		path = self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
+		#path = self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
+		path = self.getBuildPath()
 		print("START : " + path)
 		subprocess.Popen([path])
 
@@ -214,7 +226,7 @@ class BlenderUpdater(QWidget):
 
 def main():
 	app = QApplication(sys.argv)
-	file = QFile("./dark.qss")
+	file = QFile("./assets/dark.qss")
 	file.open(QFile.ReadOnly | QFile.Text)
 	stream = QTextStream(file)
 	app.setStyleSheet(stream.readAll())
