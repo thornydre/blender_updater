@@ -18,7 +18,6 @@ class BlenderUpdater(QWidget):
 		self.base_path += "/"
 
 		self.os = platform.system()
-
 		self.initUI()
 
 		self.comboChanged()
@@ -70,7 +69,7 @@ class BlenderUpdater(QWidget):
 		self.horizon_layout = QHBoxLayout()
 		self.horizon_layout.addWidget(title_label)
 		self.horizon_layout.addWidget(self.parameters_button)
-		
+
 		self.vert_layout = QVBoxLayout()
 		self.vert_layout.addLayout(self.horizon_layout)
 		self.vert_layout.addWidget(self.branches_combo)
@@ -86,11 +85,9 @@ class BlenderUpdater(QWidget):
 		self.start_branch_button.setEnabled(False)
 		self.abort_button.setEnabled(True)
 
-		parameters = [os.path.dirname(__file__) + "/utils/update.bat", self.branches_combo.currentText()]
-		parameters.append(self.base_path)
-
-		with subprocess.Popen(parameters, stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as proc:
-			self.batch_process = proc
+		parameters = self.getUpdateScriptParameters(self.branches_combo.currentText())
+		with subprocess.Popen(parameters, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, preexec_fn=self.getPreexecCallback()) as proc:
+			self.child_process = proc
 
 			text = ""
 			loop = 0
@@ -98,7 +95,7 @@ class BlenderUpdater(QWidget):
 			while proc.poll() is None:
 				output = proc.stdout.readline()
 				output_string = output.strip().decode("utf-8")
-				
+
 				if output_string:
 					progress = True
 					if output_string == "CHECKOUT":
@@ -128,7 +125,7 @@ class BlenderUpdater(QWidget):
 				self.progress_label.setText(text + dots_text)
 
 				self.setWindowTitle(self.title)
-				
+
 				print(output_string)
 
 				loop += 1
@@ -138,7 +135,7 @@ class BlenderUpdater(QWidget):
 		self.abort_button.setEnabled(False)
 		self.start_branch_button.setEnabled(True)
 		self.submit_button.setEnabled(True)
-			
+
 		self.setWindowTitle(self.title)
 
 		if self.os == "Windows":
@@ -147,10 +144,34 @@ class BlenderUpdater(QWidget):
 
 		self.cancelThread()
 
+	def getUpdateScriptParameters(self, branch_name):
+		if self.os == "Windows":
+			return [os.path.dirname(__file__) + "/utils/update.bat", branch_name, self.base_path]
+		else:
+			return ["sh", "./utils/update.sh", branch_name, self.base_path, self.branches_path]
+
+	def getPreexecCallback(self):
+		if self.os == "Windows":
+			return None
+		else:
+			return os.setsid
+
+	def getBranchName(self):
+		'''
+			Get the branch name to be used in update.sh and linux build paths; assume "master" if nothing is selected
+		'''
+		selectedBranch = self.branches_combo.currentText()
+		return selectedBranch if len(selectedBranch)>0 else "master"
+
+	def getBuildPath(self):
+		if self.os == "Windows":
+			return self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
+		else:
+			return os.path.join(self.branches_path, self.getBranchName(), "bin/blender")
 
 	def abortBuild(self):
-		if self.batch_process:
-			self.batch_process.terminate()
+		if self.child_process:
+			self.child_process.terminate()
 			self.stop_event.set()
 			self.abort_button.setEnabled(False)
 			self.start_branch_button.setEnabled(True)
@@ -170,9 +191,8 @@ class BlenderUpdater(QWidget):
 
 
 	def comboChanged(self):
-		path = self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
-
-		if os.path.exists(path):
+		#path = self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
+		if os.path.exists(self.getBuildPath()):
 			self.start_branch_button.setEnabled(True)
 		else:
 			self.start_branch_button.setEnabled(False)
@@ -180,11 +200,12 @@ class BlenderUpdater(QWidget):
 
 	def preferencesCommand(self):
 		dialog = BlenderUpdaterPreferences(self)
-		dialog.exec_()
+		dialog.exec()
 
 
 	def startBuild(self):
-		path = self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
+		#path = self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
+		path = self.getBuildPath()
 		print("START : " + path)
 		subprocess.Popen([path])
 
@@ -199,9 +220,10 @@ class BlenderUpdater(QWidget):
 
 		with open("./utils/preferences.conf", "r") as f:
 			lines = f.readlines()
-			
-			return lines[0].strip("\n"), lines[1]
-		
+			try:
+				return lines[0].strip("\n"), lines[1]
+			except IndexError: # User messed with conf file
+				pass
 		return "", ""
 
 
@@ -216,7 +238,7 @@ def main():
 	widget.resize(300, 200)
 	widget.show()
 
-	sys.exit(app.exec_())
+	sys.exit(app.exec())
 
 if __name__ == "__main__":
 	main()

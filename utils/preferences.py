@@ -57,8 +57,10 @@ class BlenderUpdaterPreferences(QDialog):
 		if os.path.isfile("./BlenderUpdater.conf"):
 			with open("./BlenderUpdater.conf", "r") as f:
 				lines = f.readlines()
-				
-				return lines[0].strip("\n"), lines[1]
+				try:
+					return lines[0].strip("\n"), lines[1]
+				except IndexError:
+					pass
 		else:
 			f = open("./BlenderUpdater.conf", "x")
 			f.writelines("\n")
