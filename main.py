@@ -23,6 +23,7 @@ class BlenderUpdater(QWidget):
 
 		self.comboChanged()
 
+
 	def initUI(self):
 		self.setWindowTitle(self.title)
 
@@ -166,6 +167,7 @@ class BlenderUpdater(QWidget):
 			self.c_thread.start()
 		else:
 			self.preferencesCommand()
+
 
 	def comboChanged(self):
 		path = self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
