@@ -4,18 +4,18 @@ import subprocess
 import os
 import sys
 import platform
-from PySide6.QtWidgets import (QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
+from PySide6.QtWidgets import (QMainWindow, QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
 from PySide6.QtCore import Slot, Qt, QFile, QTextStream
-from PySide6.QtGui import QPixmap, QIcon
+from PySide6.QtGui import QPixmap, QIcon, QAction
 from utils.preferences import *
 
 
-class BlenderUpdater(QWidget):
+class BlenderUpdater(QMainWindow):
 	def __init__(self):
-		QWidget.__init__(self)
+		QMainWindow.__init__(self)
 
 		self.title = "Blender Updater"
-		self.base_path, self.branches_path = self.loadConfig()
+		self.base_path, self.branches_path, self.lib_path = self.loadConfig()
 		self.base_path += "/"
 
 		self.os = platform.system()
@@ -32,6 +32,24 @@ class BlenderUpdater(QWidget):
 		raw_data = str(git_command).split("->")[1].split()
 
 		filtered_data = []
+
+		main_widget = QWidget()
+
+		self.open_log_action = QAction("Open build log", self)
+		self.open_log_action.triggered.connect(self.openBuildLog)
+
+		self.clean_up_action = QAction("Clean up", self)
+		self.clean_up_action.triggered.connect(self.startCleanupThread)
+
+		self.remove_branch_action = QAction("Remove branch", self)
+		self.remove_branch_action.triggered.connect(self.removeBranch)
+
+		menu_bar = self.menuBar()
+
+		file_menu = menu_bar.addMenu("File")
+		file_menu.addAction(self.open_log_action)
+		file_menu.addAction(self.clean_up_action)
+		file_menu.addAction(self.remove_branch_action)
 
 		title_label = QLabel("Blender Updater")
 		title_label.setAlignment(Qt.AlignCenter)
@@ -55,7 +73,7 @@ class BlenderUpdater(QWidget):
 		self.branches_combo.currentTextChanged.connect(self.comboChanged)
 
 		self.submit_button = QPushButton("Build selected branch")
-		self.submit_button.clicked.connect(self.startThread)
+		self.submit_button.clicked.connect(self.startBuildThread)
 
 		self.progress_label = QLabel("")
 
@@ -78,7 +96,10 @@ class BlenderUpdater(QWidget):
 		self.vert_layout.addWidget(self.progress_label)
 		self.vert_layout.addWidget(self.abort_button)
 		self.vert_layout.addWidget(self.start_branch_button)
-		self.setLayout(self.vert_layout)
+
+		main_widget.setLayout(self.vert_layout)
+
+		self.setCentralWidget(main_widget)
 
 
 	def buildBlender(self, stop_event):
@@ -142,11 +163,30 @@ class BlenderUpdater(QWidget):
 		self.cancelThread()
 
 
+	def cleanupBlender(self, stop_event):
+		parameters = self.getCleanupScriptParameters()
+		with subprocess.Popen(parameters, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, preexec_fn=self.getPreexecCallback()) as proc:
+			while proc.poll() is None:
+				output = proc.stdout.readline()
+				output_string = output.strip().decode("utf-8")
+
+				print(output_string)
+
+		self.cancelThread()
+
+
 	def getUpdateScriptParameters(self, branch_name):
 		if self.os == "Windows":
 			return [os.path.dirname(__file__) + "/utils/update.bat", branch_name, self.base_path]
 		else:
 			return ["sh", "./utils/update.sh", branch_name, self.base_path, self.branches_path]
+
+
+	def getCleanupScriptParameters(self):
+		if self.os == "Windows":
+			return [os.path.dirname(__file__) + "/utils/cleanup.bat", self.lib_path, self.base_path]
+		else:
+			return None
 
 
 	def getPreexecCallback(self):
@@ -161,7 +201,7 @@ class BlenderUpdater(QWidget):
 			Get the branch name to be used in update.sh and linux build paths; assume "master" if nothing is selected
 		'''
 		selectedBranch = self.branches_combo.currentText()
-		return selectedBranch if len(selectedBranch)>0 else "master"
+		return selectedBranch if len(selectedBranch) > 0 else "master"
 
 
 	def getBuildPath(self):
@@ -169,6 +209,13 @@ class BlenderUpdater(QWidget):
 			return self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
 		else:
 			return os.path.join(self.branches_path, self.getBranchName(), "bin/blender")
+
+
+	def getBuildLogPath(self):
+		if self.os == "Windows":
+			return self.branches_path + "/" + self.branches_combo.currentText() + "_branch/Build.log"
+		else:
+			return ""
 
 
 	def abortBuild(self):
@@ -183,10 +230,19 @@ class BlenderUpdater(QWidget):
 			self.setWindowTitle(self.title)
 
 
-	def startThread(self):
+	def startBuildThread(self):
 		if os.path.isfile("./utils/preferences.conf"):
 			self.stop_event = threading.Event()
 			self.c_thread = threading.Thread(target=self.buildBlender, args=(self.stop_event, ))
+			self.c_thread.start()
+		else:
+			self.preferencesCommand()
+
+
+	def startCleanupThread(self):
+		if os.path.isfile("./utils/preferences.conf"):
+			self.stop_event = threading.Event()
+			self.c_thread = threading.Thread(target=self.cleanupBlender, args=(self.stop_event, ))
 			self.c_thread.start()
 		else:
 			self.preferencesCommand()
@@ -223,10 +279,19 @@ class BlenderUpdater(QWidget):
 		with open("./utils/preferences.conf", "r") as f:
 			lines = f.readlines()
 			try:
-				return lines[0].strip("\n"), lines[1]
+				return lines[0].strip("\n"), lines[1].strip("\n"), lines[2].strip("\n")
 			except IndexError: # User messed with conf file
 				pass
-		return "", ""
+		return "", "", ""
+
+
+	def openBuildLog(self):
+		if os.path.isfile(self.getBuildLogPath()):
+			os.startfile(self.getBuildLogPath())
+
+
+	def removeBranch(self):
+		print("Remove branch")
 
 
 def main():

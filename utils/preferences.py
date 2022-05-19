@@ -9,7 +9,8 @@ class BlenderUpdaterPreferences(QDialog):
 
 		blender_directory_path = ""
 		branches_directory_path = ""
-		blender_directory_path, branches_directory_path = self.loadConfig()
+		lib_directory_path = ""
+		blender_directory_path, branches_directory_path, lib_directory_path = self.loadConfig()
 
 		self.setWindowTitle("Blender Updater Preferences")
 
@@ -39,6 +40,18 @@ class BlenderUpdaterPreferences(QDialog):
 		branches_directory_layout.addWidget(branches_directory_button)
 		main_layout.addLayout(branches_directory_layout)
 
+		lib_directory_label = QLabel("Path to libraries (clean up) :")
+		main_layout.addWidget(lib_directory_label)
+
+		lib_directory_layout = QHBoxLayout()
+		self.lib_directory_textfield = QLineEdit()
+		self.lib_directory_textfield.setText(lib_directory_path)
+		lib_directory_layout.addWidget(self.lib_directory_textfield)
+		lib_directory_button = QPushButton("Browse")
+		lib_directory_button.clicked.connect(self.libPathCommand)
+		lib_directory_layout.addWidget(lib_directory_button)
+		main_layout.addLayout(lib_directory_layout)
+
 		buttons_layout = QHBoxLayout()
 		submit_button = QPushButton("Save")
 		submit_button.clicked.connect(self.submitCommand)
@@ -58,14 +71,14 @@ class BlenderUpdaterPreferences(QDialog):
 			with open("./utils/preferences.conf", "r") as f:
 				lines = f.readlines()
 				try:
-					return lines[0].strip("\n"), lines[1]
+					return lines[0].strip("\n"), lines[1].strip("\n"), lines[2].strip("\n")
 				except IndexError:
 					pass
 		else:
 			f = open("./utils/preferences.conf", "x")
 			f.writelines("\n")
 
-		return "", ""
+		return "", "", ""
 
 
 	def basePathCommand(self):
@@ -82,6 +95,13 @@ class BlenderUpdaterPreferences(QDialog):
 			self.branches_directory_textfield.setText(branches_directory)
 
 
+	def libPathCommand(self):
+		lib_directory = QFileDialog.getExistingDirectory(caption="Select libraries directory", dir=self.lib_directory_textfield.text())
+
+		if lib_directory:
+			self.lib_directory_textfield.setText(lib_directory)
+
+
 	def cancelCommand(self):
 		self.close()
 
@@ -89,8 +109,9 @@ class BlenderUpdaterPreferences(QDialog):
 	def submitCommand(self, dict_key):
 		blender_directory = self.blender_directory_textfield.text()
 		branches_directory = self.branches_directory_textfield.text()
-		if blender_directory and branches_directory:
-			paths = blender_directory + "\n" + branches_directory
+		lib_directory = self.lib_directory_textfield.text()
+		if blender_directory and branches_directory and lib_directory:
+			paths = blender_directory + "\n" + branches_directory + "\n" + lib_directory
 			f = open("./utils/preferences.conf", "w")
 			f.writelines(paths)
 			self.close()
