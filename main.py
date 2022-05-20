@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QMainWindow, QApplication, QLabel, QPushButton, Q
 from PySide6.QtCore import Slot, Qt, QFile, QTextStream
 from PySide6.QtGui import QPixmap, QIcon, QAction
 from utils.preferences import *
+from shutil import rmtree
 
 
 class BlenderUpdater(QMainWindow):
@@ -200,8 +201,8 @@ class BlenderUpdater(QMainWindow):
 		'''
 			Get the branch name to be used in update.sh and linux build paths; assume "master" if nothing is selected
 		'''
-		selectedBranch = self.branches_combo.currentText()
-		return selectedBranch if len(selectedBranch) > 0 else "master"
+		selected_branch = self.branches_combo.currentText()
+		return selected_branch if selected_branch else "master"
 
 
 	def getBuildPath(self):
@@ -262,7 +263,6 @@ class BlenderUpdater(QMainWindow):
 
 
 	def startBuild(self):
-		#path = self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
 		path = self.getBuildPath()
 		print("START : " + path)
 		subprocess.Popen([path])
@@ -291,7 +291,12 @@ class BlenderUpdater(QMainWindow):
 
 
 	def removeBranch(self):
-		print("Remove branch")
+		selected_branch = self.branches_combo.currentText()
+		if selected_branch:
+			branch_path = f"{self.branches_path}/{selected_branch}_branch"
+			if os.path.isdir(branch_path):
+				print(f"REMOVING : {branch_path}")
+				rmtree(branch_path)
 
 
 def main():
