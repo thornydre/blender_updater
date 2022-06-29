@@ -4,7 +4,7 @@ import subprocess
 import os
 import sys
 import platform
-from PySide6.QtWidgets import (QMainWindow, QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget)
+from PySide6.QtWidgets import QMainWindow, QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget
 from PySide6.QtCore import Slot, Qt, QFile, QTextStream
 from PySide6.QtGui import QPixmap, QIcon, QAction
 from utils.preferences import *
@@ -73,6 +73,16 @@ class BlenderUpdater(QMainWindow):
 
 		self.branches_combo.currentTextChanged.connect(self.comboChanged)
 
+		self.diff_textfield = QLineEdit()
+
+		pixmap = QPixmap("./assets/file.png")
+		icon = QIcon(pixmap)
+		self.diff_browse_button = QPushButton()
+		self.diff_browse_button.setFixedWidth(25)
+		self.diff_browse_button.setIcon(icon)
+		self.diff_browse_button.setIconSize(pixmap.rect().size())
+		self.diff_browse_button.clicked.connect(self.browseDiffCommand)
+
 		self.submit_button = QPushButton("Build selected branch")
 		self.submit_button.clicked.connect(self.startBuildThread)
 
@@ -86,13 +96,18 @@ class BlenderUpdater(QMainWindow):
 		self.start_branch_button.clicked.connect(self.startBuild)
 		self.start_branch_button.setEnabled(False)
 
-		self.horizon_layout = QHBoxLayout()
-		self.horizon_layout.addWidget(title_label)
-		self.horizon_layout.addWidget(self.parameters_button)
+		self.title_horizon_layout = QHBoxLayout()
+		self.title_horizon_layout.addWidget(title_label)
+		self.title_horizon_layout.addWidget(self.parameters_button)
+
+		self.diff_horizon_layout = QHBoxLayout()
+		self.diff_horizon_layout.addWidget(self.diff_textfield)
+		self.diff_horizon_layout.addWidget(self.diff_browse_button)
 
 		self.vert_layout = QVBoxLayout()
-		self.vert_layout.addLayout(self.horizon_layout)
+		self.vert_layout.addLayout(self.title_horizon_layout)
 		self.vert_layout.addWidget(self.branches_combo)
+		self.vert_layout.addLayout(self.diff_horizon_layout)
 		self.vert_layout.addWidget(self.submit_button)
 		self.vert_layout.addWidget(self.progress_label)
 		self.vert_layout.addWidget(self.abort_button)
@@ -178,14 +193,14 @@ class BlenderUpdater(QMainWindow):
 
 	def getUpdateScriptParameters(self, branch_name):
 		if self.os == "Windows":
-			return [os.path.dirname(__file__) + "/utils/update.bat", branch_name, self.base_path]
+			return [f"{os.path.dirname(__file__)}/utils/update.bat", branch_name, self.base_path, self.diff_textfield.text()]
 		else:
-			return ["sh", "./utils/update.sh", branch_name, self.base_path, self.branches_path]
+			return ["sh", "./utils/update.sh", branch_name, self.base_path, self.branches_path, self.diff_textfield.text()]
 
 
 	def getCleanupScriptParameters(self):
 		if self.os == "Windows":
-			return [os.path.dirname(__file__) + "/utils/cleanup.bat", self.lib_path, self.base_path]
+			return [f"{os.path.dirname(__file__)}/utils/cleanup.bat", self.lib_path, self.base_path]
 		else:
 			return None
 
@@ -207,14 +222,14 @@ class BlenderUpdater(QMainWindow):
 
 	def getBuildPath(self):
 		if self.os == "Windows":
-			return self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
+			return f"{self.branches_path}/{self.branches_combo.currentText()}_branch/bin/Release/blender.exe"
 		else:
 			return os.path.join(self.branches_path, self.getBranchName(), "bin/blender")
 
 
 	def getBuildLogPath(self):
 		if self.os == "Windows":
-			return self.branches_path + "/" + self.branches_combo.currentText() + "_branch/Build.log"
+			return f"{self.branches_path}/{self.branches_combo.currentText()}_branch/Build.log"
 		else:
 			return ""
 
@@ -297,6 +312,13 @@ class BlenderUpdater(QMainWindow):
 			if os.path.isdir(branch_path):
 				print(f"REMOVING : {branch_path}")
 				rmtree(branch_path)
+
+
+	def browseDiffCommand(self):
+		diff = QFileDialog.getOpenFileName(caption="Select differencial to apply")
+
+		if diff:
+			self.diff_textfield.setText(diff[0])
 
 
 def main():
