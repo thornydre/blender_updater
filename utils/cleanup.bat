@@ -10,6 +10,7 @@ echo UPDATE
 call svn update
 cd /d %base_path%
 echo PULL
+call git stash
 call git pull
 
 echo CLEAN UP DONE
