@@ -250,6 +250,7 @@ class BlenderUpdater(QMainWindow):
 		if os.path.isfile("./utils/preferences.conf"):
 			self.stop_event = threading.Event()
 			self.c_thread = threading.Thread(target=self.buildBlender, args=(self.stop_event, ))
+			self.c_thread.daemon = True
 			self.c_thread.start()
 		else:
 			self.preferencesCommand()
@@ -259,6 +260,7 @@ class BlenderUpdater(QMainWindow):
 		if os.path.isfile("./utils/preferences.conf"):
 			self.stop_event = threading.Event()
 			self.c_thread = threading.Thread(target=self.cleanupBlender, args=(self.stop_event, ))
+			self.c_thread.daemon = True
 			self.c_thread.start()
 		else:
 			self.preferencesCommand()
