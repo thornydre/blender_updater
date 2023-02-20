@@ -74,9 +74,6 @@ class BlenderUpdaterPreferences(QDialog):
 					return lines[0].strip("\n"), lines[1].strip("\n"), lines[2].strip("\n")
 				except IndexError:
 					pass
-		else:
-			f = open("./utils/preferences.conf", "x")
-			f.writelines("\n")
 
 		return "", "", ""
 

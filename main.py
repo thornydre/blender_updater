@@ -28,11 +28,12 @@ class BlenderUpdater(QMainWindow):
 	def initUI(self):
 		self.setWindowTitle(self.title)
 
-		git_command = subprocess.run(["git", "-C", self.base_path, "branch", "-a", "--sort=-committerdate"], stdout=subprocess.PIPE)
+		if os.path.isdir(self.base_path) and self.base_path != "/":
+			git_command = subprocess.run(["git", "-C", self.base_path, "branch", "-a", "--sort=-committerdate"], stdout=subprocess.PIPE)
 
-		raw_data = str(git_command).split("->")[1].split()
+			raw_data = str(git_command).split("->")[1].split()
 
-		filtered_data = []
+			filtered_data = []
 
 		main_widget = QWidget()
 
@@ -65,11 +66,12 @@ class BlenderUpdater(QMainWindow):
 
 		self.branches_combo = QComboBox(self)
 
-		for data in raw_data:
-			branch_name = data.split("/")[-1].split("\\n")[0]
-			if branch_name not in filtered_data:
-				filtered_data.append(branch_name)
-				self.branches_combo.addItem(branch_name)
+		if os.path.isdir(self.base_path) and self.base_path != "/":
+			for data in raw_data:
+				branch_name = data.split("/")[-1].split("\\n")[0]
+				if branch_name not in filtered_data:
+					filtered_data.append(branch_name)
+					self.branches_combo.addItem(branch_name)
 
 		self.branches_combo.currentTextChanged.connect(self.comboChanged)
 
@@ -267,7 +269,11 @@ class BlenderUpdater(QMainWindow):
 
 
 	def comboChanged(self):
-		#path = self.branches_path + "/" + self.branches_combo.currentText() + "_branch/bin/Release/blender.exe"
+		if self.branches_combo.currentText():
+			self.submit_button.setEnabled(True)
+		else:
+			self.submit_button.setEnabled(False)
+
 		if os.path.exists(self.getBuildPath()):
 			self.start_branch_button.setEnabled(True)
 		else:
@@ -293,12 +299,13 @@ class BlenderUpdater(QMainWindow):
 		if not os.path.isfile("./utils/preferences.conf"):
 			self.preferencesCommand()
 
-		with open("./utils/preferences.conf", "r") as f:
-			lines = f.readlines()
-			try:
-				return lines[0].strip("\n"), lines[1].strip("\n"), lines[2].strip("\n")
-			except IndexError: # User messed with conf file
-				pass
+		if os.path.isfile("./utils/preferences.conf"):
+			with open("./utils/preferences.conf", "r") as f:
+				lines = f.readlines()
+				try:
+					return lines[0].strip("\n"), lines[1].strip("\n"), lines[2].strip("\n")
+				except IndexError: # User messed with conf file
+					pass
 		return "", "", ""
 
 
