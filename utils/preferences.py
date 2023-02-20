@@ -1,16 +1,23 @@
-from PySide6.QtWidgets import (QDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog)
+from PySide6.QtWidgets import (QDialog, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit, QFileDialog, QListWidget)
 from PySide6.QtCore import Qt
 import os
+import json
 
 
 class BlenderUpdaterPreferences(QDialog):
 	def __init__(self, parent=None):
 		super(BlenderUpdaterPreferences, self).__init__(parent=parent, f=Qt.WindowTitleHint|Qt.WindowSystemMenuHint)
 
-		blender_directory_path = ""
-		branches_directory_path = ""
-		lib_directory_path = ""
-		blender_directory_path, branches_directory_path, lib_directory_path = self.loadConfig()
+		preferences = self.loadConfig()
+
+		# blender_directory_path = ""
+		# branches_directory_path = ""
+		# lib_directory_path = ""
+		blender_directory_path = preferences["blender_dir"]
+		branches_directory_path = preferences["branches_dir"]
+		lib_directory_path = preferences["lib_dir"]
+
+		# blender_directory_path, branches_directory_path, lib_directory_path = self.loadConfig()
 
 		self.setWindowTitle("Blender Updater Preferences")
 
@@ -52,6 +59,23 @@ class BlenderUpdaterPreferences(QDialog):
 		lib_directory_layout.addWidget(lib_directory_button)
 		main_layout.addLayout(lib_directory_layout)
 
+		branches_list_layout = QHBoxLayout()
+		self.all_branches_list = QListWidget()
+		for branch_name in ["main", "cycles", "workbench-next", "eevee-next", "sculpt"]:
+			self.all_branches_list.addItem(branch_name)
+		branches_list_layout.addWidget(self.all_branches_list)
+		self.add_to_selected_list_button = QPushButton(">")
+		self.add_to_selected_list_button.clicked.connect(self.addToSelectedListCommand)
+		branches_list_layout.addWidget(self.add_to_selected_list_button)
+		self.remove_from_selected_list_button = QPushButton("<")
+		self.remove_from_selected_list_button.clicked.connect(self.removeFromSelectedListCommand)
+		branches_list_layout.addWidget(self.remove_from_selected_list_button)
+		self.selected_branches_list = QListWidget()
+		for branch_name in preferences["branches"]:
+			self.selected_branches_list.addItem(branch_name)
+		branches_list_layout.addWidget(self.selected_branches_list)
+		main_layout.addLayout(branches_list_layout)
+
 		buttons_layout = QHBoxLayout()
 		submit_button = QPushButton("Save")
 		submit_button.clicked.connect(self.submitCommand)
@@ -67,15 +91,18 @@ class BlenderUpdaterPreferences(QDialog):
 
 
 	def loadConfig(self):
+		preferences = {}
 		if os.path.isfile("./utils/preferences.conf"):
-			with open("./utils/preferences.conf", "r") as f:
-				lines = f.readlines()
-				try:
-					return lines[0].strip("\n"), lines[1].strip("\n"), lines[2].strip("\n")
-				except IndexError:
-					pass
+			with open("./utils/preferences.conf", "r") as file:
+				preferences = json.load(file)
+			# with open("./utils/preferences.conf", "r") as f:
+			# 	lines = f.readlines()
+			# 	try:
+			# 		return lines[0].strip("\n"), lines[1].strip("\n"), lines[2].strip("\n")
+			# 	except IndexError:
+			# 		pass
 
-		return "", "", ""
+		return preferences
 
 
 	def basePathCommand(self):
@@ -99,6 +126,22 @@ class BlenderUpdaterPreferences(QDialog):
 			self.lib_directory_textfield.setText(lib_directory)
 
 
+	def addToSelectedListCommand(self):
+		item = self.all_branches_list.currentItem()
+		row = self.all_branches_list.row(item)
+		self.all_branches_list.takeItem(row)
+
+		self.selected_branches_list.addItem(item)
+
+
+	def removeFromSelectedListCommand(self):
+		item = self.selected_branches_list.currentItem()
+		row = self.selected_branches_list.row(item)
+		self.selected_branches_list.takeItem(row)
+
+		self.all_branches_list.addItem(item)
+
+
 	def cancelCommand(self):
 		self.close()
 
@@ -107,8 +150,19 @@ class BlenderUpdaterPreferences(QDialog):
 		blender_directory = self.blender_directory_textfield.text()
 		branches_directory = self.branches_directory_textfield.text()
 		lib_directory = self.lib_directory_textfield.text()
+
 		if blender_directory and branches_directory and lib_directory:
 			paths = blender_directory + "\n" + branches_directory + "\n" + lib_directory
-			f = open("./utils/preferences.conf", "w")
-			f.writelines(paths)
+
+			pref_dict = {
+				"blender_dir": f"{blender_directory}/",
+				"branches_dir": branches_directory,
+				"lib_dir": lib_directory,
+				"branches": [self.selected_branches_list.item(index).text() for index in range(self.selected_branches_list.count())]
+			}
+			with open("./utils/preferences.conf", "w") as file:
+				json.dump(pref_dict, file)
+
+			# f = open("./utils/preferences.conf", "w")
+			# f.writelines(paths)
 			self.close()

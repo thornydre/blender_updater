@@ -1,14 +1,15 @@
+from PySide6.QtWidgets import QMainWindow, QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget
+from PySide6.QtCore import Slot, Qt, QFile, QTextStream
+from PySide6.QtGui import QPixmap, QIcon, QAction
+from utils.preferences import *
+from shutil import rmtree
 import threading
 import ctypes
 import subprocess
 import os
 import sys
 import platform
-from PySide6.QtWidgets import QMainWindow, QApplication, QLabel, QPushButton, QComboBox, QVBoxLayout, QHBoxLayout, QWidget
-from PySide6.QtCore import Slot, Qt, QFile, QTextStream
-from PySide6.QtGui import QPixmap, QIcon, QAction
-from utils.preferences import *
-from shutil import rmtree
+import json
 
 
 class BlenderUpdater(QMainWindow):
@@ -16,8 +17,14 @@ class BlenderUpdater(QMainWindow):
 		QMainWindow.__init__(self)
 
 		self.title = "Blender Updater"
-		self.base_path, self.branches_path, self.lib_path = self.loadConfig()
-		self.base_path += "/"
+		self.preferences = self.loadConfig()
+
+		self.base_path = self.preferences.get("blender_dir")
+		self.branches_path = self.preferences.get("branches_dir")
+		self.lib_path = self.preferences.get("lib_dir")
+
+		# self.base_path, self.branches_path, self.lib_path = self.loadConfig()
+		# self.base_path += "/"
 
 		self.os = platform.system()
 		self.initUI()
@@ -28,12 +35,12 @@ class BlenderUpdater(QMainWindow):
 	def initUI(self):
 		self.setWindowTitle(self.title)
 
-		if os.path.isdir(self.base_path) and self.base_path != "/":
-			git_command = subprocess.run(["git", "-C", self.base_path, "branch", "-a", "--sort=-committerdate"], stdout=subprocess.PIPE)
+		# if os.path.isdir(self.base_path) and self.base_path != "/":
+		# 	git_command = subprocess.run(["git", "-C", self.base_path, "branch", "-a", "--sort=-committerdate"], stdout=subprocess.PIPE)
 
-			raw_data = str(git_command).split("->")[1].split()
+		# 	raw_data = str(git_command).split("->")[1].split()
 
-			filtered_data = []
+		# 	filtered_data = []
 
 		main_widget = QWidget()
 
@@ -67,11 +74,8 @@ class BlenderUpdater(QMainWindow):
 		self.branches_combo = QComboBox(self)
 
 		if os.path.isdir(self.base_path) and self.base_path != "/":
-			for data in raw_data:
-				branch_name = data.split("/")[-1].split("\\n")[0]
-				if branch_name not in filtered_data:
-					filtered_data.append(branch_name)
-					self.branches_combo.addItem(branch_name)
+			for branch_name in self.preferences["branches"]:
+				self.branches_combo.addItem(branch_name)
 
 		self.branches_combo.currentTextChanged.connect(self.comboChanged)
 
@@ -299,14 +303,18 @@ class BlenderUpdater(QMainWindow):
 		if not os.path.isfile("./utils/preferences.conf"):
 			self.preferencesCommand()
 
+		preferences = {}
+
 		if os.path.isfile("./utils/preferences.conf"):
-			with open("./utils/preferences.conf", "r") as f:
-				lines = f.readlines()
-				try:
-					return lines[0].strip("\n"), lines[1].strip("\n"), lines[2].strip("\n")
-				except IndexError: # User messed with conf file
-					pass
-		return "", "", ""
+			with open("./utils/preferences.conf", "r") as file:
+				preferences = json.load(file)
+			# with open("./utils/preferences.conf", "r") as f:
+			# 	lines = f.readlines()
+			# 	try:
+			# 		return lines[0].strip("\n"), lines[1].strip("\n"), lines[2].strip("\n")
+			# 	except IndexError: # User messed with conf file
+			# 		pass
+		return preferences
 
 
 	def openBuildLog(self):
