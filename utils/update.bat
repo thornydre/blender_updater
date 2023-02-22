@@ -1,7 +1,7 @@
 @echo off
 
 set branch=%1
-if [%1] == [] set branch=master
+if [%1] == [] set branch=main
 set base_path=%2
 set branches_path=./branches/
 set full_path=%branches_path%/%branch%_branch/
