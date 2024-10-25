@@ -35,13 +35,6 @@ class BlenderUpdater(QMainWindow):
 	def initUI(self):
 		self.setWindowTitle(self.title)
 
-		# if os.path.isdir(self.base_path) and self.base_path != "/":
-		# 	git_command = subprocess.run(["git", "-C", self.base_path, "branch", "-a", "--sort=-committerdate"], stdout=subprocess.PIPE)
-
-		# 	raw_data = str(git_command).split("->")[1].split()
-
-		# 	filtered_data = []
-
 		main_widget = QWidget()
 
 		self.open_log_action = QAction("Open build log", self)
@@ -136,6 +129,8 @@ class BlenderUpdater(QMainWindow):
 			text = ""
 			loop = 0
 
+			success = True
+
 			while proc.poll() is None:
 				output = proc.stdout.readline()
 				output_string = output.strip().decode("utf-8")
@@ -153,14 +148,12 @@ class BlenderUpdater(QMainWindow):
 						self.title = "(3/4) - Blender Updater"
 					elif output_string == "Error during build":
 						progress = False
+						success = False
 						text = "Error during build"
 						self.title = "Blender Updater"
 
 				if progress:
-					dots = int(loop % 4)
-					dots_text = ""
-					for i in range(dots):
-						dots_text += "."
+					dots_text = "." * int(loop % 4)
 
 				self.progress_label.setText(text + dots_text)
 
@@ -170,7 +163,8 @@ class BlenderUpdater(QMainWindow):
 
 				loop += 1
 
-		self.progress_label.setText("(4/4) - Done")
+		if success:
+			self.progress_label.setText("(4/4) - Done")
 		self.title = "Blender Updater"
 		self.abort_button.setEnabled(False)
 		self.start_branch_button.setEnabled(True)
@@ -184,7 +178,6 @@ class BlenderUpdater(QMainWindow):
 
 		self.cancelThread()
 
-
 	def cleanupBlender(self, stop_event):
 		parameters = self.getCleanupScriptParameters()
 		with subprocess.Popen(parameters, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, preexec_fn=self.getPreexecCallback()) as proc:
@@ -196,13 +189,11 @@ class BlenderUpdater(QMainWindow):
 
 		self.cancelThread()
 
-
 	def getUpdateScriptParameters(self, branch_name):
 		if self.os == "Windows":
 			return [f"{os.path.dirname(__file__)}/utils/update.bat", branch_name, self.base_path, self.diff_textfield.text()]
 		else:
 			return ["sh", "./utils/update.sh", branch_name, self.base_path, self.branches_path, self.diff_textfield.text()]
-
 
 	def getCleanupScriptParameters(self):
 		if self.os == "Windows":
@@ -210,21 +201,18 @@ class BlenderUpdater(QMainWindow):
 		else:
 			return None
 
-
 	def getPreexecCallback(self):
 		if self.os == "Windows":
 			return None
 		else:
 			return os.setsid
 
-
 	def getBranchName(self):
 		'''
-			Get the branch name to be used in update.sh and linux build paths; assume "master" if nothing is selected
+			Get the branch name to be used in update.sh and linux build paths; assume "main" if nothing is selected
 		'''
 		selected_branch = self.branches_combo.currentText()
-		return selected_branch if selected_branch else "master"
-
+		return selected_branch if selected_branch else "main"
 
 	def getBuildPath(self):
 		if self.os == "Windows":
@@ -232,13 +220,11 @@ class BlenderUpdater(QMainWindow):
 		else:
 			return os.path.join(self.branches_path, self.getBranchName(), "bin/blender")
 
-
 	def getBuildLogPath(self):
 		if self.os == "Windows":
 			return f"{self.branches_path}/{self.branches_combo.currentText()}_branch/Build.log"
 		else:
 			return ""
-
 
 	def abortBuild(self):
 		if self.child_process:
@@ -251,7 +237,6 @@ class BlenderUpdater(QMainWindow):
 			self.title = "Blender Updater"
 			self.setWindowTitle(self.title)
 
-
 	def startBuildThread(self):
 		if os.path.isfile("./utils/preferences.conf"):
 			self.stop_event = threading.Event()
@@ -261,7 +246,6 @@ class BlenderUpdater(QMainWindow):
 		else:
 			self.preferencesCommand()
 
-
 	def startCleanupThread(self):
 		if os.path.isfile("./utils/preferences.conf"):
 			self.stop_event = threading.Event()
@@ -270,7 +254,6 @@ class BlenderUpdater(QMainWindow):
 			self.c_thread.start()
 		else:
 			self.preferencesCommand()
-
 
 	def comboChanged(self):
 		if self.branches_combo.currentText():
@@ -283,21 +266,17 @@ class BlenderUpdater(QMainWindow):
 		else:
 			self.start_branch_button.setEnabled(False)
 
-
 	def preferencesCommand(self):
 		dialog = BlenderUpdaterPreferences(self)
 		dialog.exec()
-
 
 	def startBuild(self):
 		path = self.getBuildPath()
 		print("START : " + path)
 		subprocess.Popen([path])
 
-
 	def cancelThread(self):
 		self.stop_event.set()
-
 
 	def loadConfig(self):
 		if not os.path.isfile("./utils/preferences.conf"):
@@ -316,11 +295,9 @@ class BlenderUpdater(QMainWindow):
 			# 		pass
 		return preferences
 
-
 	def openBuildLog(self):
 		if os.path.isfile(self.getBuildLogPath()):
 			os.startfile(self.getBuildLogPath())
-
 
 	def removeBranch(self):
 		selected_branch = self.branches_combo.currentText()
@@ -329,7 +306,6 @@ class BlenderUpdater(QMainWindow):
 			if os.path.isdir(branch_path):
 				print(f"REMOVING : {branch_path}")
 				rmtree(branch_path)
-
 
 	def browseDiffCommand(self):
 		diff = QFileDialog.getOpenFileName(caption="Select differencial to apply")

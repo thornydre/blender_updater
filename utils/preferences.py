@@ -2,6 +2,7 @@ from PySide6.QtWidgets import (QDialog, QLabel, QPushButton, QVBoxLayout, QHBoxL
 from PySide6.QtCore import Qt
 import os
 import json
+import subprocess
 
 
 class BlenderUpdaterPreferences(QDialog):
@@ -13,9 +14,10 @@ class BlenderUpdaterPreferences(QDialog):
 		# blender_directory_path = ""
 		# branches_directory_path = ""
 		# lib_directory_path = ""
-		blender_directory_path = preferences["blender_dir"]
-		branches_directory_path = preferences["branches_dir"]
-		lib_directory_path = preferences["lib_dir"]
+		blender_directory_path = preferences.get("blender_dir")
+		branches_directory_path = preferences.get("branches_dir")
+		lib_directory_path = preferences.get("lib_dir")
+		selected_branches = preferences.get("branches")
 
 		# blender_directory_path, branches_directory_path, lib_directory_path = self.loadConfig()
 
@@ -29,6 +31,7 @@ class BlenderUpdaterPreferences(QDialog):
 		blender_directory_layout = QHBoxLayout()
 		self.blender_directory_textfield = QLineEdit()
 		self.blender_directory_textfield.setText(blender_directory_path)
+		self.blender_directory_textfield.textChanged.connect(self.updateBlenderDirCommand)
 		blender_directory_layout.addWidget(self.blender_directory_textfield)
 		blender_directory_button = QPushButton("Browse")
 		blender_directory_button.clicked.connect(self.basePathCommand)
@@ -61,8 +64,7 @@ class BlenderUpdaterPreferences(QDialog):
 
 		branches_list_layout = QHBoxLayout()
 		self.all_branches_list = QListWidget()
-		for branch_name in ["main", "cycles", "workbench-next", "eevee-next", "sculpt"]:
-			self.all_branches_list.addItem(branch_name)
+		self.updateBranchesList()
 		branches_list_layout.addWidget(self.all_branches_list)
 		self.add_to_selected_list_button = QPushButton(">")
 		self.add_to_selected_list_button.clicked.connect(self.addToSelectedListCommand)
@@ -71,7 +73,7 @@ class BlenderUpdaterPreferences(QDialog):
 		self.remove_from_selected_list_button.clicked.connect(self.removeFromSelectedListCommand)
 		branches_list_layout.addWidget(self.remove_from_selected_list_button)
 		self.selected_branches_list = QListWidget()
-		for branch_name in preferences["branches"]:
+		for branch_name in selected_branches:
 			self.selected_branches_list.addItem(branch_name)
 		branches_list_layout.addWidget(self.selected_branches_list)
 		main_layout.addLayout(branches_list_layout)
@@ -142,6 +144,33 @@ class BlenderUpdaterPreferences(QDialog):
 		self.all_branches_list.addItem(item)
 
 
+	def updateBlenderDirCommand(self):
+		blender_directory = self.blender_directory_textfield.text()
+
+		git_command = subprocess.call(["git", "-C", blender_directory, "branch"], stderr=subprocess.STDOUT, stdout=open(os.devnull, "w"))
+
+		if git_command == 0:
+			self.updateBranchesList()
+
+
+	def updateBranchesList(self):
+			blender_directory = self.blender_directory_textfield.text()
+
+			git_command = subprocess.run(["git", "-C", blender_directory, "branch", "-a"], stdout=subprocess.PIPE)
+
+			raw_data = str(git_command).split("->")[1].split()
+
+			filtered_data = []
+
+			self.all_branches_list.clear()
+
+			for data in raw_data:
+				branch_name = data.split("/")[-1].split("\\n")[0]
+				if branch_name not in filtered_data:
+					filtered_data.append(branch_name)
+					self.all_branches_list.addItem(branch_name)
+
+
 	def cancelCommand(self):
 		self.close()
 
@@ -155,7 +184,7 @@ class BlenderUpdaterPreferences(QDialog):
 			paths = blender_directory + "\n" + branches_directory + "\n" + lib_directory
 
 			pref_dict = {
-				"blender_dir": f"{blender_directory}/",
+				"blender_dir": blender_directory,
 				"branches_dir": branches_directory,
 				"lib_dir": lib_directory,
 				"branches": [self.selected_branches_list.item(index).text() for index in range(self.selected_branches_list.count())]
